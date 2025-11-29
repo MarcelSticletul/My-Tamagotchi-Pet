@@ -1,20 +1,28 @@
-[
-  {
-    "id": "4fa1ff73-2cbb-4cc4-b812-cefeca6767cc",
-    "owner": "Andrei",
-    "name": "Costel",
-    "age": 55.60000000000019,
-    "food": 1,
-    "water": 0,
-    "energy": 6
-  },
-  {
-    "id": "677d569b-4f90-4335-8394-413bc41f2b11",
-    "owner": "abc",
-    "name": "max",
-    "age": 6.699999999999993,
-    "food": 0,
-    "water": 0,
-    "energy": 0
-  }
-]
+{
+  "users": [
+    {
+      "username": "Andrei",
+      "password": "Andrei1234"
+    }
+  ],
+  "pets": [
+    {
+      "id": "454d0883-7dac-4ff3-8bbc-41a82a6e6b3c",
+      "owner": "Andrei",
+      "name": "Costel",
+      "age": 11.299999999999986,
+      "food": 0,
+      "water": 0,
+      "energy": 0
+    },
+    {
+      "id": "e0b3ae5d-3871-4a2e-9631-1d904724642b",
+      "owner": "Andrei",
+      "name": "awdsad",
+      "age": 2.0000000000000004,
+      "food": 0,
+      "water": 0,
+      "energy": 0
+    }
+  ]
+}

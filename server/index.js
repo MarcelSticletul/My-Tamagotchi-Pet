@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
-const { v4: uuidv4 } = require('uuid'); // Librăria pentru ID-uri unice [cite: 7]
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 app.use(cors());
@@ -10,110 +10,123 @@ app.use(express.json());
 const PORT = 3000;
 const DB_FILE = 'tamagotchi_data.json';
 
-// Citim baza de date
+// --- BAZA DE DATE (Structura Nouă) ---
 function readData() {
     try {
         const data = fs.readFileSync(DB_FILE);
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        // Siguranță: Dacă fișierul e vechi (doar o listă), îl resetăm
+        if (Array.isArray(parsed)) {
+            return { users: [], pets: [] };
+        }
+        return parsed;
     } catch (error) {
-        return []; // Pornim cu o listă goală de animale
+        return { users: [], pets: [] }; // Structura goală de start
     }
 }
 
-// Salvăm baza de date
 function saveData(data) {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 }
 
-// --- GAME LOOP (Timpul trece) ---
-// Rulează la fiecare 3 secunde pentru a simula trecerea timpului [cite: 12]
+// --- GAME LOOP ---
 setInterval(() => {
-    let pets = readData();
+    let db = readData();
     let changed = false;
 
-    pets.forEach(pet => {
-        // Logica de îmbătrânire și scădere statistici
-        // Dacă are mâncare și apă, crește vârsta 
-        if (pet.food > 0 && pet.water > 0) {
-            pet.age += 0.1; // Crește vârsta încet
-        }
+    db.pets.forEach(pet => {
+        if (pet.food > 0 && pet.water > 0) pet.age += 0.1;
 
-        // Scadem resursele natural în timp
-        // Folosim Math.max(0, ...) ca să nu scadă sub 0 [cite: 13]
         if (Math.random() > 0.5) pet.food = Math.max(0, pet.food - 1);
         if (Math.random() > 0.5) pet.water = Math.max(0, pet.water - 1);
 
-        // Relație între statistici: Mâncarea puțină scade energia [cite: 14]
         if (pet.food < 3) {
             pet.energy = Math.max(0, pet.energy - 1);
         } else {
-            // Dacă e bine hrănit, recuperează energie încet (dacă nu doarme)
             pet.energy = Math.min(10, pet.energy + 0.5);
         }
-
         changed = true;
     });
 
-    if (changed) saveData(pets);
-}, 3000); 
+    if (changed) saveData(db);
+}, 3000);
 
-// 1. Login (Autentificare simplă doar cu username) 
-// Returnează doar animalele acelui proprietar [cite: 5]
+// --- 🔐 AUTENTIFICARE (NOU) ---
+
+// 1. SIGN UP (Înregistrare cu verificare duplicate)
+app.post('/signup', (req, res) => {
+    const { username, password } = req.body;
+    const db = readData();
+
+    // Verificăm dacă există deja
+    const existingUser = db.users.find(u => u.username === username);
+    if (existingUser) {
+        // Trimitem eroare 409 (Conflict) și mesajul
+        return res.status(409).json({ error: `Numele '${username}' este deja luat! Încearcă '${username}1'.` });
+    }
+
+    // Creăm userul
+    db.users.push({ username, password });
+    saveData(db);
+    res.json({ success: true });
+});
+
+// 2. LOGIN (Verificare parolă)
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    const db = readData();
+
+    const user = db.users.find(u => u.username === username && u.password === password);
+    
+    if (user) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ error: "Nume sau parolă greșită!" });
+    }
+});
+
+// --- ANIMALE ---
+
 app.get('/pets/:owner', (req, res) => {
     const owner = req.params.owner;
-    const allPets = readData();
-    // Filtrăm să vedem doar animalele proprietarului [cite: 3, 4]
-    const myPets = allPets.filter(p => p.owner === owner);
+    const db = readData();
+    const myPets = db.pets.filter(p => p.owner === owner);
     res.json(myPets);
 });
 
-// 2. Creare animal nou (Create Pet)
 app.post('/pets', (req, res) => {
     const { owner, name } = req.body;
-    const allPets = readData();
+    const db = readData();
 
     const newPet = {
-        id: uuidv4(), // Identificator unic [cite: 7]
+        id: uuidv4(),
         owner: owner,
         name: name || "Animaluț",
-        age: 0,        //
-        food: 10,      // Maxim 10 [cite: 9, 13]
-        water: 10,     // [cite: 10]
-        energy: 10     // [cite: 11]
+        age: 0, food: 10, water: 10, energy: 10
     };
 
-    allPets.push(newPet);
-    saveData(allPets);
+    db.pets.push(newPet);
+    saveData(db);
     res.json(newPet);
 });
 
-// 3. Acțiuni (Hrană, Apă, Speed) [cite: 16]
 app.post('/pets/:id/action', (req, res) => {
     const { id } = req.params;
     const { action } = req.body;
-    let allPets = readData();
-    let pet = allPets.find(p => p.id === id);
+    let db = readData();
+    let pet = db.pets.find(p => p.id === id);
 
     if (pet) {
-        if (action === 'feed') {
-            pet.food = Math.min(10, pet.food + 2); // [cite: 18]
-        } else if (action === 'water') {
-            pet.water = Math.min(10, pet.water + 2); // [cite: 18]
-
-        } else if (action === 'sleep') {
-            pet.energy = Math.min(10, pet.energy + 5); // Crește energia, maxim 10
-
-        } else if (action === 'speed') {
-            // "make the time pass faster" [cite: 17]
-            pet.age += 1; 
+        if (action === 'feed') pet.food = Math.min(10, pet.food + 2);
+        else if (action === 'water') pet.water = Math.min(10, pet.water + 2);
+        else if (action === 'sleep') pet.energy = Math.min(10, pet.energy + 5);
+        else if (action === 'speed') {
+            pet.age += 1;
             pet.food = Math.max(0, pet.food - 2);
             pet.water = Math.max(0, pet.water - 2);
-            
-            // --- MODIFICARE AICI: Scade și energia ---
-            pet.energy = Math.max(0, pet.energy - 2); 
-            // ----------------------------------------
+            pet.energy = Math.max(0, pet.energy - 2);
         }
-        saveData(allPets);
+        saveData(db);
         res.json(pet);
     } else {
         res.status(404).send("Pet not found");
