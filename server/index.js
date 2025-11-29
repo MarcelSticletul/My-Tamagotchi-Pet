@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
-const { v4: uuidv4 } = require('uuid'); // Librăria pentru ID-uri unice 
+const { v4: uuidv4 } = require('uuid'); // Librăria pentru ID-uri unice [cite: 7]
 
 const app = express();
 app.use(cors());
@@ -25,8 +25,8 @@ function saveData(data) {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 }
 
-// --- GAME LOOP (Timpul trece)  ---
-// Rulează la fiecare 3 secunde pentru a simula trecerea timpului
+// --- GAME LOOP (Timpul trece) ---
+// Rulează la fiecare 3 secunde pentru a simula trecerea timpului [cite: 12]
 setInterval(() => {
     let pets = readData();
     let changed = false;
@@ -43,7 +43,7 @@ setInterval(() => {
         if (Math.random() > 0.5) pet.food = Math.max(0, pet.food - 1);
         if (Math.random() > 0.5) pet.water = Math.max(0, pet.water - 1);
 
-        // Relație între statistici: Mâncarea puțină scade energia 
+        // Relație între statistici: Mâncarea puțină scade energia [cite: 14]
         if (pet.food < 3) {
             pet.energy = Math.max(0, pet.energy - 1);
         } else {
@@ -58,7 +58,7 @@ setInterval(() => {
 }, 3000); 
 
 // 1. Login (Autentificare simplă doar cu username) 
-// Returnează doar animalele acelui proprietar
+// Returnează doar animalele acelui proprietar [cite: 5]
 app.get('/pets/:owner', (req, res) => {
     const owner = req.params.owner;
     const allPets = readData();
@@ -73,11 +73,11 @@ app.post('/pets', (req, res) => {
     const allPets = readData();
 
     const newPet = {
-        id: uuidv4(), // Identificator unic 
+        id: uuidv4(), // Identificator unic [cite: 7]
         owner: owner,
         name: name || "Animaluț",
         age: 0,        //
-        food: 10,      // [cite: 9] Maxim 10 [cite: 13]
+        food: 10,      // Maxim 10 [cite: 9, 13]
         water: 10,     // [cite: 10]
         energy: 10     // [cite: 11]
     };
@@ -94,21 +94,24 @@ app.post('/pets/:id/action', (req, res) => {
     let allPets = readData();
     let pet = allPets.find(p => p.id === id);
 
-   if (pet) {
+    if (pet) {
         if (action === 'feed') {
-            pet.food = Math.min(10, pet.food + 2);
+            pet.food = Math.min(10, pet.food + 2); // [cite: 18]
         } else if (action === 'water') {
-            pet.water = Math.min(10, pet.water + 2);
+            pet.water = Math.min(10, pet.water + 2); // [cite: 18]
 
-        // --- ADAUGĂ ACEST BLOC ---
         } else if (action === 'sleep') {
             pet.energy = Math.min(10, pet.energy + 5); // Crește energia, maxim 10
-        // -------------------------
 
         } else if (action === 'speed') {
+            // "make the time pass faster" [cite: 17]
             pet.age += 1; 
             pet.food = Math.max(0, pet.food - 2);
             pet.water = Math.max(0, pet.water - 2);
+            
+            // --- MODIFICARE AICI: Scade și energia ---
+            pet.energy = Math.max(0, pet.energy - 2); 
+            // ----------------------------------------
         }
         saveData(allPets);
         res.json(pet);
