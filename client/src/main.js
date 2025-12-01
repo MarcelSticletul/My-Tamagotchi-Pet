@@ -188,6 +188,27 @@ function renderPets(pets) {
     });
 }
 
+// --- FUNCȚIE NOUĂ: Generarea HTML-ului pentru bară---
+function renderStatBar(label, value) {
+    const percentage = (value / 10) * 100; // Valoare 0-10, transformăm în %
+    let barColor = '#2ecc71'; // Verde (standard)
+    
+    if (value < 3) {
+        barColor = '#e74c3c'; // Roșu la nivel critic
+    } else if (value < 6) {
+        barColor = '#f39c12'; // Galben la nivel mediu
+    }
+
+    return `
+        <div class="stat-item">
+            <span class="stat-label">${label}: ${value.toFixed(1)}/10</span>
+            <div class="stat-bar-container">
+                <div class="stat-bar-fill" style="width: ${percentage}%; background-color: ${barColor};"></div>
+            </div>
+        </div>
+    `;
+}
+
 // --- ACȚIUNI ---
 window.action = async (id, type) => {
     await fetch(`${API_URL}/pets/${id}/action`, {
